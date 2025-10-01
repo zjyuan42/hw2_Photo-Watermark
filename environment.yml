@@ -1,0 +1,10 @@
+name: watermark_app
+channels:
+  - defaults
+dependencies:
+  - python=3.10
+  - pip
+  - pip:
+    - Pillow>=10.0.0
+    - PyQt5>=5.15.0
+    - numpy>=1.24.0
