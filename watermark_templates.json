@@ -1,0 +1,107 @@
+{
+    "test1": {
+        "watermark_type": "text",
+        "text_watermark": "aabbccddyy",
+        "font": {
+            "family": "AniMe Vision - MB_EN",
+            "pointSize": 36
+        },
+        "color": {
+            "red": 255,
+            "green": 255,
+            "blue": 255,
+            "alpha": 128
+        },
+        "opacity": 50,
+        "position": "center",
+        "rotation": 0,
+        "scale": 100,
+        "spacing": 50,
+        "tile": false,
+        "watermark_image_path": ""
+    },
+    "test2": {
+        "watermark_type": "text",
+        "text_watermark": "aabbccddyy",
+        "font": {
+            "family": "Ink Free",
+            "pointSize": 36
+        },
+        "color": {
+            "red": 255,
+            "green": 255,
+            "blue": 255,
+            "alpha": 128
+        },
+        "opacity": 50,
+        "position": "center",
+        "rotation": 0,
+        "scale": 100,
+        "spacing": 50,
+        "tile": false,
+        "watermark_image_path": ""
+    },
+    "test3": {
+        "watermark_type": "text",
+        "text_watermark": "aabbccddyy",
+        "font": {
+            "family": "Ink Free",
+            "pointSize": 72
+        },
+        "color": {
+            "red": 255,
+            "green": 255,
+            "blue": 255,
+            "alpha": 128
+        },
+        "opacity": 50,
+        "position": "center",
+        "rotation": 0,
+        "scale": 100,
+        "spacing": 50,
+        "tile": false,
+        "watermark_image_path": ""
+    },
+    "test4": {
+        "watermark_type": "text",
+        "text_watermark": "aabbccddyy",
+        "font": {
+            "family": "Ink Free",
+            "pointSize": 72
+        },
+        "color": {
+            "red": 85,
+            "green": 0,
+            "blue": 127,
+            "alpha": 255
+        },
+        "opacity": 17,
+        "position": "middle_left",
+        "rotation": 0,
+        "scale": 100,
+        "spacing": 50,
+        "tile": false,
+        "watermark_image_path": ""
+    },
+    "test5": {
+        "watermark_type": "text",
+        "text_watermark": "aabbccddyy",
+        "font": {
+            "family": "Ink Free",
+            "pointSize": 72
+        },
+        "color": {
+            "red": 85,
+            "green": 0,
+            "blue": 127,
+            "alpha": 43
+        },
+        "opacity": 17,
+        "position": "middle_left",
+        "rotation": 0,
+        "scale": 100,
+        "spacing": 50,
+        "tile": false,
+        "watermark_image_path": ""
+    }
+}

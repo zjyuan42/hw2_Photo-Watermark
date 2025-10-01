@@ -57,11 +57,11 @@ class WatermarkApp(QMainWindow):
         self.watermark_offset_y = 0
         self.custom_position_enabled = False  # 标记是否启用了自定义位置
         
-        # 加载模板
-        self.load_templates()
-        
         # 创建UI
         self.init_ui()
+        
+        # 加载模板
+        self.load_templates()
         
     def init_ui(self):
         # 创建主部件和布局
@@ -1186,7 +1186,10 @@ class WatermarkApp(QMainWindow):
                 'scale': self.scale,
                 'spacing': self.spacing,
                 'tile': self.tile,
-                'watermark_image_path': self.watermark_image_path
+                'watermark_image_path': self.watermark_image_path,
+                'custom_position_enabled': getattr(self, 'custom_position_enabled', False),
+                'watermark_offset_x': getattr(self, 'watermark_offset_x', 0),
+                'watermark_offset_y': getattr(self, 'watermark_offset_y', 0)
             }
             
             self.templates[template_name] = template
@@ -1257,7 +1260,16 @@ class WatermarkApp(QMainWindow):
             self.tile = template['tile']
             self.tile_check.setChecked(self.tile)
             
+            # 恢复自定义位置信息
+            if 'custom_position_enabled' in template:
+                self.custom_position_enabled = template['custom_position_enabled']
+                self.watermark_offset_x = template.get('watermark_offset_x', 0)
+                self.watermark_offset_y = template.get('watermark_offset_y', 0)
+            
             QMessageBox.information(self, '成功', f'模板 "{template_name}" 加载成功')
+            
+            # 应用水印到预览
+            self.apply_watermark_to_preview()
     
     def delete_template(self):
         # 删除水印模板
