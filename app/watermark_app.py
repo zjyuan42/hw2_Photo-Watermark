@@ -32,6 +32,7 @@ class WatermarkApp(QMainWindow):
         self.font = QFont()
         self.font.setFamily('SimHei')
         self.font.setPointSize(24)
+        self.font_file_path = None  # 存储实际字体文件路径，确保预览和实际渲染一致
         self.color = QColor(255, 255, 255, 128)  # 白色半透明
         self.opacity = 50  # 背景不透明度 0-100
         self.text_opacity = 100  # 文字不透明度 0-100
@@ -496,6 +497,71 @@ class WatermarkApp(QMainWindow):
         if ok:
             self.font = font
             self.font_preview.setFont(font)
+            
+            # 预先查找并存储字体文件路径，确保预览和实际渲染一致
+            self.font_file_path = self._find_font_file(font.family())
+            print(f"字体选择: {font.family()}, 预存字体文件路径: {self.font_file_path}")
+    
+    def _find_font_file(self, font_family):
+        """预先查找字体文件路径并返回"""
+        # 方法1: 尝试根据字体名称查找字体文件
+        font_name_to_path = {
+            'SimHei': 'C:/Windows/Fonts/simhei.ttf',
+            'SimSun': 'C:/Windows/Fonts/simsun.ttc',
+            'Microsoft YaHei': 'C:/Windows/Fonts/msyh.ttf',
+            'Microsoft YaHei UI': 'C:/Windows/Fonts/msyh.ttc',
+            'KaiTi': 'C:/Windows/Fonts/simkai.ttf',
+            'Arial': 'C:/Windows/Fonts/arial.ttf',
+            'Times New Roman': 'C:/Windows/Fonts/times.ttf',
+            'Courier New': 'C:/Windows/Fonts/cour.ttf',
+            'Comic Sans MS': 'C:/Windows/Fonts/comic.ttf',
+            'Impact': 'C:/Windows/Fonts/impact.ttf',
+            'Verdana': 'C:/Windows/Fonts/verdana.ttf',
+            'Georgia': 'C:/Windows/Fonts/georgia.ttf',
+            'Tahoma': 'C:/Windows/Fonts/tahoma.ttf',
+            'Bradley Hand ITC': 'C:/Windows/Fonts/bradhitc.ttf',
+            'Calibri': 'C:/Windows/Fonts/calibri.ttf',
+            'Segoe UI': 'C:/Windows/Fonts/segoeui.ttf',
+            'FangSong': 'C:/Windows/Fonts/simfang.ttf',
+            'YouYuan': 'C:/Windows/Fonts/youyuan.ttf',
+            'Microsoft JhengHei': 'C:/Windows/Fonts/msjh.ttf',
+        }
+        
+        # 尝试直接匹配字体名称
+        if font_family in font_name_to_path:
+            font_path = font_name_to_path[font_family]
+            if os.path.exists(font_path):
+                return font_path
+        
+        # 方法2: 扫描Windows字体文件夹查找匹配的字体文件
+        fonts_folder = 'C:/Windows/Fonts'
+        if os.path.exists(fonts_folder):
+            # 获取字体文件夹中的所有.ttf和.ttc文件
+            font_files = []
+            for root, dirs, files in os.walk(fonts_folder):
+                for file in files:
+                    if file.lower().endswith(('.ttf', '.ttc')):
+                        font_files.append(os.path.join(root, file))
+            
+            # 尝试匹配字体名称和文件
+            # 1. 首先尝试直接匹配（不区分大小写）
+            font_family_lower = font_family.lower()
+            for font_file in font_files:
+                file_name = os.path.basename(font_file).lower()
+                if font_family_lower in file_name:
+                    return font_file
+            
+            # 2. 如果直接匹配失败，尝试部分匹配
+            font_words = font_family_lower.split()
+            for font_file in font_files:
+                file_name = os.path.basename(font_file).lower()
+                # 检查是否有足够的单词匹配
+                matched_words = sum(1 for word in font_words if word in file_name)
+                if matched_words >= len(font_words) * 0.5:  # 匹配至少一半的单词
+                    return font_file
+        
+        # 如果找不到字体文件，返回None
+        return None
     
     def select_color(self):
         # 选择颜色
@@ -658,12 +724,23 @@ class WatermarkApp(QMainWindow):
                     user_font_family = self.font.family()
                     print(f"用户选择的字体: {user_font_family}")
                     
-                    # 方法1: 尝试直接通过字体名称加载（PIL可能能够查找系统字体）
-                    try:
-                        font = ImageFont.truetype(user_font_family, font_size)
-                        print(f"成功直接通过字体名称加载: {user_font_family}")
-                    except Exception as e:
-                        print(f"直接加载字体失败: {e}")
+                    # 首先尝试使用预存的字体文件路径（如果有）
+                    if self.font_file_path and os.path.exists(self.font_file_path):
+                        try:
+                            font = ImageFont.truetype(self.font_file_path, font_size)
+                            print(f"成功使用预存字体文件: {self.font_file_path}")
+                        except Exception as e:
+                            print(f"使用预存字体文件失败: {e}")
+                            font = None
+                    
+                    # 如果预存字体路径不存在或加载失败，尝试使用用户选择的字体名称
+                    if font is None:
+                        # 方法1: 尝试直接通过字体名称加载（PIL可能能够查找系统字体）
+                        try:
+                            font = ImageFont.truetype(user_font_family, font_size)
+                            print(f"成功直接通过字体名称加载: {user_font_family}")
+                        except Exception as e:
+                            print(f"直接加载字体失败: {e}")
                         
                         # 方法2: 尝试根据字体名称查找字体文件
                         # 预定义的字体名称到文件路径的映射
@@ -671,6 +748,7 @@ class WatermarkApp(QMainWindow):
                             'SimHei': 'C:/Windows/Fonts/simhei.ttf',
                             'SimSun': 'C:/Windows/Fonts/simsun.ttc',
                             'Microsoft YaHei': 'C:/Windows/Fonts/msyh.ttf',
+                            'Microsoft YaHei UI': 'C:/Windows/Fonts/msyh.ttc',
                             'KaiTi': 'C:/Windows/Fonts/simkai.ttf',
                             'Arial': 'C:/Windows/Fonts/arial.ttf',
                             'Times New Roman': 'C:/Windows/Fonts/times.ttf',
@@ -681,6 +759,11 @@ class WatermarkApp(QMainWindow):
                             'Georgia': 'C:/Windows/Fonts/georgia.ttf',
                             'Tahoma': 'C:/Windows/Fonts/tahoma.ttf',
                             'Bradley Hand ITC': 'C:/Windows/Fonts/bradhitc.ttf',
+                            'Calibri': 'C:/Windows/Fonts/calibri.ttf',
+                            'Segoe UI': 'C:/Windows/Fonts/segoeui.ttf',
+                            'FangSong': 'C:/Windows/Fonts/simfang.ttf',
+                            'YouYuan': 'C:/Windows/Fonts/youyuan.ttf',
+                            'Microsoft JhengHei': 'C:/Windows/Fonts/msjh.ttf',
                         }
                         
                         # 尝试直接匹配字体名称
@@ -692,6 +775,48 @@ class WatermarkApp(QMainWindow):
                                     print(f"成功加载用户选择的字体: {user_font_path}")
                                 except Exception as e:
                                     print(f"加载用户选择的字体出错: {e}")
+                        
+                        # 方法3: 扫描Windows字体文件夹查找匹配的字体文件
+                        if font is None:
+                            print("尝试扫描Windows字体文件夹查找匹配字体")
+                            fonts_folder = 'C:/Windows/Fonts'
+                            if os.path.exists(fonts_folder):
+                                # 获取字体文件夹中的所有.ttf和.ttc文件
+                                font_files = []
+                                for root, dirs, files in os.walk(fonts_folder):
+                                    for file in files:
+                                        if file.lower().endswith(('.ttf', '.ttc')):
+                                            font_files.append(os.path.join(root, file))
+                                
+                                # 尝试匹配字体名称和文件
+                                # 1. 首先尝试直接匹配（不区分大小写）
+                                user_font_lower = user_font_family.lower()
+                                for font_file in font_files:
+                                    file_name = os.path.basename(font_file).lower()
+                                    if user_font_lower in file_name:
+                                        try:
+                                            font = ImageFont.truetype(font_file, font_size)
+                                            print(f"成功从字体文件夹找到并加载: {font_file}")
+                                            break
+                                        except Exception as e:
+                                            print(f"尝试加载 {font_file} 失败: {e}")
+                                            continue
+                                
+                                # 2. 如果直接匹配失败，尝试部分匹配
+                                if font is None:
+                                    user_font_words = user_font_lower.split()
+                                    for font_file in font_files:
+                                        file_name = os.path.basename(font_file).lower()
+                                        # 检查是否有足够的单词匹配
+                                        matched_words = sum(1 for word in user_font_words if word in file_name)
+                                        if matched_words >= len(user_font_words) * 0.5:  # 匹配至少一半的单词
+                                            try:
+                                                font = ImageFont.truetype(font_file, font_size)
+                                                print(f"通过部分匹配找到并加载: {font_file}")
+                                                break
+                                            except Exception as e:
+                                                print(f"尝试加载 {font_file} 失败: {e}")
+                                                continue
                     
                     # 如果用户字体加载失败，尝试加载默认的中文字体
                     if font is None:
