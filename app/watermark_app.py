@@ -594,13 +594,9 @@ class WatermarkApp(QMainWindow):
                 text = self.text_watermark
                 print(f"水印文本: {text}")
                 
-                # 为了确保水印可见，使用一个完全不同的方法
-                # 1. 直接在图片中央绘制一个大的半透明矩形
-                # 2. 在矩形上绘制黑色文字
-                
-                # 计算水印区域大小（占图片宽度的80%，高度的15%）
-                watermark_width = int(image.width * 0.8)
-                watermark_height = int(image.height * 0.15)
+                # 计算水印区域大小（占图片宽度的90%，高度的20%）
+                watermark_width = int(image.width * 0.9)
+                watermark_height = int(image.height * 0.2)
                 print(f"水印区域尺寸: {watermark_width}x{watermark_height}")
                 
                 # 计算位置（居中）
@@ -609,61 +605,116 @@ class WatermarkApp(QMainWindow):
                 print(f"水印区域位置: ({x}, {y})")
                 
                 # 绘制半透明白色背景
-                bg_opacity = int(self.opacity * 1.5)
+                bg_opacity = int(self.opacity * 2)
                 print(f"背景透明度: {bg_opacity}")
                 draw.rectangle([x, y, x + watermark_width, y + watermark_height], fill=(255, 255, 255, bg_opacity))
                 
-                # 文字太小问题 - 采用全新方法
+                # 全新的文本渲染方法
                 print("绘制文本水印...")
                 
-                # 关键改进：为了解决文字太小的问题，我们需要完全不同的方法
-                # 我们将使用更基础的绘图方式来确保文字足够大
+                # 使用深蓝色作为文本颜色
+                text_color = (50, 50, 200)  # 深蓝色
                 text_opacity = 255  # 完全不透明
-                print(f"文本透明度: {text_opacity}")
+                print(f"文本颜色: {text_color}, 透明度: {text_opacity}")
                 
-                # 新策略：使用非常简单但有效的方法 - 在多个位置重复绘制相同文本，使用粗线条
-                # 1. 首先在水印区域内绘制多个大小递增的文字
-                
-                # 文字1：在水印区域的左上角绘制
-                pos1_x = x + 30
-                pos1_y = y + 40
-                print(f"文本绘制位置1: ({pos1_x}, {pos1_y})")
-                
-                # 为了使文字看起来更大，我们将绘制多个略微偏移的黑色文字
-                # 这将创建一个加粗的效果，使文字看起来更大
-                for offset_x in range(-3, 4):
-                    for offset_y in range(-3, 4):
-                        draw.text((pos1_x + offset_x, pos1_y + offset_y), text, fill=(0, 0, 0, text_opacity))
-                
-                # 2. 在水印区域的下方再次绘制相同文字
-                pos2_x = x + 30
-                pos2_y = y + watermark_height - 60
-                print(f"文本绘制位置2: ({pos2_x}, {pos2_y})")
-                
-                # 使用更大的偏移范围，创建更大的"加粗"效果
-                for offset_x in range(-4, 5):
-                    for offset_y in range(-4, 5):
-                        draw.text((pos2_x + offset_x, pos2_y + offset_y), text, fill=(0, 0, 0, text_opacity))
-                
-                # 3. 在水印区域的中央绘制一个特别大的文字
-                # 使用多个大偏移来创建一个非常明显的文本
-                center_x = x + watermark_width // 2 - 70
-                center_y = y + watermark_height // 2 - 30
-                print(f"文本绘制位置3: ({center_x}, {center_y})")
-                
-                # 最关键的部分：使用非常大的偏移范围多次绘制，使文本显得很大
-                for offset_x in range(-5, 6):
-                    for offset_y in range(-5, 6):
-                        draw.text((center_x + offset_x, center_y + offset_y), text, fill=(0, 0, 0, text_opacity))
+                # 关键改进：使用ImageFont模块指定字体和大小
+                # 不再使用多次偏移绘制的方法，改为单个清晰文本
+                try:
+                    # 尝试加载系统字体
+                    # 对于中文，我们需要确保字体支持中文显示
+                    from PIL import ImageFont
+                    
+                    # 计算合适的字体大小
+                    # 基于水印区域的高度计算字体大小
+                    font_size = int(watermark_height * 0.6)  # 使用水印高度的60%作为字体大小
+                    print(f"计算的字体大小: {font_size}")
+                    
+                    # 尝试加载几种常见的支持中文的字体
+                    font_path = None
+                    font = None
+                    
+                    # Windows系统常见的中文字体路径
+                    possible_fonts = [
+                        'C:/Windows/Fonts/simhei.ttf',  # 黑体
+                        'C:/Windows/Fonts/simsun.ttc',  # 宋体
+                        'C:/Windows/Fonts/msyh.ttf',    # 微软雅黑
+                        'C:/Windows/Fonts/simkai.ttf',  # 楷体
+                    ]
+                    
+                    for fp in possible_fonts:
+                        if os.path.exists(fp):
+                            font_path = fp
+                            try:
+                                font = ImageFont.truetype(fp, font_size)
+                                print(f"成功加载字体: {fp}")
+                                break
+                            except Exception as e:
+                                print(f"加载字体 {fp} 时出错: {e}")
+                                continue
+                    
+                    # 如果无法加载字体，使用默认字体但调整大小
+                    if font is None:
+                        print("无法加载指定字体，使用默认字体")
+                        # 使用一个非常简单的方法：绘制文本的同时填充内部
+                        
+                        # 计算文本位置（居中）
+                        text_x = x + (watermark_width // 4)  # 稍微靠左，避免文字太分散
+                        text_y = y + (watermark_height // 4)  # 稍微靠上
+                        print(f"文本绘制位置: ({text_x}, {text_y})")
+                        
+                        # 为确保文字清晰可见，使用一个非常基础但有效的方法：
+                        # 1. 先绘制一个实心的文字轮廓
+                        # 2. 再在中间绘制相同的文字填充内部
+                        
+                        # 绘制外轮廓（使用略微放大的偏移）
+                        for offset_x in range(-10, 11):
+                            for offset_y in range(-10, 11):
+                                if offset_x != 0 or offset_y != 0:  # 避免重复绘制中心
+                                    draw.text((text_x + offset_x, text_y + offset_y), text, fill=text_color + (text_opacity,))
+                        
+                        # 绘制内部填充（纯色）
+                        draw.text((text_x, text_y), text, fill=(255, 0, 0, text_opacity))  # 使用红色填充内部
+                    else:
+                        # 字体加载成功，使用指定字体绘制
+                        print("使用指定字体绘制文本")
+                        
+                        # 计算文本位置（居中）
+                        # 获取文本的边界框来精确计算居中位置
+                        try:
+                            # 尝试获取文本尺寸
+                            bbox = draw.textbbox((0, 0), text, font=font)
+                            text_width = bbox[2] - bbox[0]
+                            text_height = bbox[3] - bbox[1]
+                            print(f"文本尺寸: {text_width}x{text_height}")
+                            
+                            # 计算居中位置
+                            text_x = x + (watermark_width - text_width) // 2
+                            text_y = y + (watermark_height - text_height) // 2
+                        except Exception as e:
+                            print(f"获取文本边界框失败: {e}")
+                            # 使用简单计算
+                            text_x = x + (watermark_width // 4)
+                            text_y = y + (watermark_height // 4)
+                        
+                        print(f"文本绘制位置: ({text_x}, {text_y})")
+                        
+                        # 绘制文本
+                        draw.text((text_x, text_y), text, font=font, fill=text_color + (text_opacity,))
+                except ImportError:
+                    print("ImageFont模块不可用，使用简单文本绘制")
+                    # 简单绘制方法
+                    text_x = x + (watermark_width // 4)
+                    text_y = y + (watermark_height // 4)
+                    draw.text((text_x, text_y), text, fill=text_color + (text_opacity,))
                 
                 # 另外添加一些小的辅助标记，确认水印应用
                 print("添加辅助标记...")
-                # 在水印区域的四个角落绘制小方块
-                corner_size = 20
-                draw.rectangle([x, y, x + corner_size, y + corner_size], fill=(0, 0, 0, 255))
-                draw.rectangle([x + watermark_width - corner_size, y, x + watermark_width, y + corner_size], fill=(0, 0, 0, 255))
-                draw.rectangle([x, y + watermark_height - corner_size, x + corner_size, y + watermark_height], fill=(0, 0, 0, 255))
-                draw.rectangle([x + watermark_width - corner_size, y + watermark_height - corner_size, x + watermark_width, y + watermark_height], fill=(0, 0, 0, 255))
+                # 在水印区域的四个角落绘制小方块，使用与文字相同的颜色
+                corner_size = 25
+                draw.rectangle([x, y, x + corner_size, y + corner_size], fill=text_color + (text_opacity,))
+                draw.rectangle([x + watermark_width - corner_size, y, x + watermark_width, y + corner_size], fill=text_color + (text_opacity,))
+                draw.rectangle([x, y + watermark_height - corner_size, x + corner_size, y + watermark_height], fill=text_color + (text_opacity,))
+                draw.rectangle([x + watermark_width - corner_size, y + watermark_height - corner_size, x + watermark_width, y + watermark_height], fill=text_color + (text_opacity,))
                 
                 # 添加额外的辅助信息，以便我们可以验证水印是否被添加
                 # 在图片左上角添加一个小的红色标记
