@@ -617,9 +617,8 @@ class WatermarkApp(QMainWindow):
                 watermark_height = int(image.height * 0.2)
                 print(f"水印区域尺寸: {watermark_width}x{watermark_height}")
                 
-                # 计算位置（居中）
-                x = (image.width - watermark_width) // 2
-                y = (image.height - watermark_height) // 2
+                # 计算位置（根据用户选择的位置参数）
+                x, y = self.get_position(image.width, image.height, watermark_width, watermark_height)
                 print(f"水印区域位置: ({x}, {y})")
                 
                 # 绘制半透明白色背景
