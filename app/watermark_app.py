@@ -50,6 +50,13 @@ class WatermarkApp(QMainWindow):
         self.resize_height = 1080  # 调整后高度
         self.resize_keep_ratio = True  # 保持比例
         
+        # 鼠标拖拽相关变量
+        self.is_dragging = False
+        self.drag_start_pos = QPoint()
+        self.watermark_offset_x = 0
+        self.watermark_offset_y = 0
+        self.custom_position_enabled = False  # 标记是否启用了自定义位置
+        
         # 加载模板
         self.load_templates()
         
@@ -165,6 +172,12 @@ class WatermarkApp(QMainWindow):
         self.preview_label = QLabel('请导入图片')
         self.preview_label.setAlignment(Qt.AlignCenter)
         self.preview_label.setMinimumSize(400, 300)
+        self.preview_label.setMouseTracking(True)  # 启用鼠标跟踪
+        self.preview_label.setCursor(Qt.OpenHandCursor)  # 设置鼠标光标为手形
+        # 连接鼠标事件
+        self.preview_label.mousePressEvent = self.on_mouse_press
+        self.preview_label.mouseMoveEvent = self.on_mouse_move
+        self.preview_label.mouseReleaseEvent = self.on_mouse_release
         preview_layout.addWidget(self.preview_label)
         
         right_layout.addWidget(preview_group)
@@ -583,6 +596,11 @@ class WatermarkApp(QMainWindow):
         # 设置水印位置
         self.position = position
         
+        # 重置自定义位置标志和偏移量
+        self.custom_position_enabled = False
+        self.watermark_offset_x = 0
+        self.watermark_offset_y = 0
+        
         # 更新按钮状态
         for btn in self.findChildren(QPushButton):
             if btn.text() in ['左上', '上中', '右上', '左中', '中心', '右中', '左下', '下中', '右下']:
@@ -592,6 +610,9 @@ class WatermarkApp(QMainWindow):
                     '左下': 'bottom_left', '下中': 'bottom_center', '右下': 'bottom_right'
                 }
                 btn.setChecked(pos_map.get(btn.text()) == position)
+        
+        # 更新预览
+        self.apply_watermark_to_preview()
     
     def on_opacity_changed(self, value):
         # 当背景透明度改变时
@@ -1013,7 +1034,40 @@ class WatermarkApp(QMainWindow):
             'bottom_right': (image_width - watermark_width - 10, image_height - watermark_height - 10)
         }
         
-        return positions.get(self.position, positions['center'])
+        # 获取基础位置
+        base_x, base_y = positions.get(self.position, positions['center'])
+        
+        # 如果启用了自定义位置，应用偏移量
+        if self.custom_position_enabled:
+            # 计算缩放因子，将UI预览中的偏移量转换为实际图片大小的偏移量
+            if self.selected_image_idx >= 0 and self.selected_image_idx < len(self.images):
+                try:
+                    # 获取原图大小
+                    original_image = Image.open(self.images[self.selected_image_idx])
+                    orig_width, orig_height = original_image.size
+                    
+                    # 获取预览标签中显示的图片大小
+                    if self.preview_label.pixmap():
+                        preview_width = self.preview_label.pixmap().width()
+                        preview_height = self.preview_label.pixmap().height()
+                        
+                        # 计算缩放因子
+                        scale_x = orig_width / preview_width if preview_width > 0 else 1
+                        scale_y = orig_height / preview_height if preview_height > 0 else 1
+                        
+                        # 应用缩放后的偏移量
+                        base_x += int(self.watermark_offset_x * scale_x)
+                        base_y += int(self.watermark_offset_y * scale_y)
+                except:
+                    # 如果出错，直接使用原始偏移量
+                    base_x += self.watermark_offset_x
+                    base_y += self.watermark_offset_y
+        
+        # 确保水印不会超出图片边界
+        base_x = max(0, min(base_x, image_width - watermark_width))
+        base_y = max(0, min(base_y, image_height - watermark_height))
+        
+        return (base_x, base_y)
     
     def export_images(self):
         # 导出图片
@@ -1052,6 +1106,46 @@ class WatermarkApp(QMainWindow):
                 QMessageBox.warning(self, '警告', f'导出图片 {os.path.basename(image_path)} 时出错: {str(e)}')
         
         QMessageBox.information(self, '完成', f'共 {success_count}/{total} 张图片导出成功')
+    
+    # 鼠标事件处理函数
+    def on_mouse_press(self, event):
+        # 只有当有图片被选中且预览中有图像时才允许拖拽
+        if (self.selected_image_idx >= 0 and self.selected_image_idx < len(self.images) and 
+            self.preview_label.pixmap()):
+            if event.button() == Qt.LeftButton:
+                self.is_dragging = True
+                self.drag_start_pos = event.pos()
+                self.preview_label.setCursor(Qt.ClosedHandCursor)  # 拖拽时显示闭合的手形光标
+    
+    def on_mouse_move(self, event):
+        # 处理鼠标移动事件
+        if self.is_dragging and event.buttons() == Qt.LeftButton:
+            # 计算偏移量
+            delta = event.pos() - self.drag_start_pos
+            
+            # 更新偏移量
+            self.watermark_offset_x += delta.x()
+            self.watermark_offset_y += delta.y()
+            
+            # 更新起始位置
+            self.drag_start_pos = event.pos()
+            
+            # 启用自定义位置
+            self.custom_position_enabled = True
+            
+            # 更新预览
+            self.apply_watermark_to_preview()
+    
+    def on_mouse_release(self, event):
+        # 处理鼠标释放事件
+        if self.is_dragging and event.button() == Qt.LeftButton:
+            self.is_dragging = False
+            self.preview_label.setCursor(Qt.OpenHandCursor)  # 释放后恢复手形光标
+            
+            # 清除位置按钮的选中状态，因为现在使用的是自定义位置
+            for btn in self.findChildren(QPushButton):
+                if btn.text() in ['左上', '上中', '右上', '左中', '中心', '右中', '左下', '下中', '右下']:
+                    btn.setChecked(False)
     
     def load_templates(self):
         # 加载水印模板
