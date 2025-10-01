@@ -33,7 +33,8 @@ class WatermarkApp(QMainWindow):
         self.font.setFamily('SimHei')
         self.font.setPointSize(24)
         self.color = QColor(255, 255, 255, 128)  # 白色半透明
-        self.opacity = 50  # 0-100
+        self.opacity = 50  # 背景不透明度 0-100
+        self.text_opacity = 100  # 文字不透明度 0-100
         self.position = 'center'  # 水印位置
         self.rotation = 0  # 旋转角度
         self.scale = 100  # 缩放比例
@@ -271,17 +272,29 @@ class WatermarkApp(QMainWindow):
         opacity_group = QGroupBox('透明度设置')
         opacity_layout = QVBoxLayout(opacity_group)
         
+        # 背景透明度
+        opacity_layout.addWidget(QLabel('背景透明度:'))
         self.opacity_slider = QSlider(Qt.Horizontal)
         self.opacity_slider.setRange(0, 100)
         self.opacity_slider.setValue(50)
         self.opacity_slider.valueChanged.connect(self.on_opacity_changed)
-        
-        opacity_layout.addWidget(QLabel('透明度:'))
         opacity_layout.addWidget(self.opacity_slider)
         
         self.opacity_label = QLabel(f'{self.opacity}%')
         self.opacity_label.setAlignment(Qt.AlignCenter)
         opacity_layout.addWidget(self.opacity_label)
+        
+        # 文字透明度
+        opacity_layout.addWidget(QLabel('文字透明度:'))
+        self.text_opacity_slider = QSlider(Qt.Horizontal)
+        self.text_opacity_slider.setRange(0, 100)
+        self.text_opacity_slider.setValue(100)
+        self.text_opacity_slider.valueChanged.connect(self.on_text_opacity_changed)
+        opacity_layout.addWidget(self.text_opacity_slider)
+        
+        self.text_opacity_label = QLabel(f'{self.text_opacity}%')
+        self.text_opacity_label.setAlignment(Qt.AlignCenter)
+        opacity_layout.addWidget(self.text_opacity_label)
         
         self.layout_layout.addWidget(opacity_group)
         
@@ -515,13 +528,18 @@ class WatermarkApp(QMainWindow):
                 btn.setChecked(pos_map.get(btn.text()) == position)
     
     def on_opacity_changed(self, value):
-        # 当透明度改变时
+        # 当背景透明度改变时
         self.opacity = value
         self.opacity_label.setText(f'{value}%')
         
         # 更新颜色的透明度
         self.color.setAlpha(int(value * 2.55))
         self.color_btn.setStyleSheet(f'background-color: rgba({self.color.red()}, {self.color.green()}, {self.color.blue()}, {self.color.alpha()/255})')
+        
+    def on_text_opacity_changed(self, value):
+        # 当文字透明度改变时
+        self.text_opacity = value
+        self.text_opacity_label.setText(f'{value}%')
     
     def on_resize_toggled(self, state):
         # 当调整大小选项改变时
@@ -614,7 +632,7 @@ class WatermarkApp(QMainWindow):
                 
                 # 使用深蓝色作为文本颜色
                 text_color = (50, 50, 200)  # 深蓝色
-                text_opacity = 255  # 完全不透明
+                text_opacity = int(self.text_opacity * 2.55)  # 根据用户设置的文字透明度
                 print(f"文本颜色: {text_color}, 透明度: {text_opacity}")
                 
                 # 关键改进：使用ImageFont模块指定字体和大小
@@ -671,7 +689,7 @@ class WatermarkApp(QMainWindow):
                             for offset_y in range(-10, 11):
                                 if offset_x != 0 or offset_y != 0:  # 避免重复绘制中心
                                     draw.text((text_x + offset_x, text_y + offset_y), text, fill=text_color + (text_opacity,))
-                        
+                
                         # 绘制内部填充（纯色）
                         draw.text((text_x, text_y), text, fill=(255, 0, 0, text_opacity))  # 使用红色填充内部
                     else:
@@ -709,7 +727,7 @@ class WatermarkApp(QMainWindow):
                 
                 # 另外添加一些小的辅助标记，确认水印应用
                 print("添加辅助标记...")
-                # 在水印区域的四个角落绘制小方块，使用与文字相同的颜色
+                # 在水印区域的四个角落绘制小方块，使用与文字相同的颜色和透明度
                 corner_size = 25
                 draw.rectangle([x, y, x + corner_size, y + corner_size], fill=text_color + (text_opacity,))
                 draw.rectangle([x + watermark_width - corner_size, y, x + watermark_width, y + corner_size], fill=text_color + (text_opacity,))
