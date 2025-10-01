@@ -641,33 +641,78 @@ class WatermarkApp(QMainWindow):
                     # 对于中文，我们需要确保字体支持中文显示
                     from PIL import ImageFont
                     
-                    # 计算合适的字体大小
-                    # 基于水印区域的高度计算字体大小
-                    font_size = int(watermark_height * 0.6)  # 使用水印高度的60%作为字体大小
-                    print(f"计算的字体大小: {font_size}")
+                    # 获取用户选择的字体大小并进行适当缩放
+                    # 由于PIL和PyQt的字体大小单位可能不同，添加缩放因子
+                    user_font_size = self.font.pointSize()
+                    # 根据水印区域高度和用户选择的字体大小计算最终字体大小
+                    # 缩放因子需要根据实际显示效果调整
+                    scale_factor = min(watermark_height / 100, watermark_width / (len(text) * 10))  # 确保文字不会溢出
+                    font_size = max(12, int(user_font_size * scale_factor * 1.5))  # 设置最小字体大小为12
+                    print(f"用户选择的字体大小: {user_font_size}, 计算后字体大小: {font_size}")
                     
                     # 尝试加载几种常见的支持中文的字体
                     font_path = None
                     font = None
                     
-                    # Windows系统常见的中文字体路径
-                    possible_fonts = [
-                        'C:/Windows/Fonts/simhei.ttf',  # 黑体
-                        'C:/Windows/Fonts/simsun.ttc',  # 宋体
-                        'C:/Windows/Fonts/msyh.ttf',    # 微软雅黑
-                        'C:/Windows/Fonts/simkai.ttf',  # 楷体
-                    ]
+                    # 首先尝试使用用户选择的字体
+                    user_font_family = self.font.family()
+                    print(f"用户选择的字体: {user_font_family}")
                     
-                    for fp in possible_fonts:
-                        if os.path.exists(fp):
-                            font_path = fp
-                            try:
-                                font = ImageFont.truetype(fp, font_size)
-                                print(f"成功加载字体: {fp}")
-                                break
-                            except Exception as e:
-                                print(f"加载字体 {fp} 时出错: {e}")
-                                continue
+                    # 方法1: 尝试直接通过字体名称加载（PIL可能能够查找系统字体）
+                    try:
+                        font = ImageFont.truetype(user_font_family, font_size)
+                        print(f"成功直接通过字体名称加载: {user_font_family}")
+                    except Exception as e:
+                        print(f"直接加载字体失败: {e}")
+                        
+                        # 方法2: 尝试根据字体名称查找字体文件
+                        # 预定义的字体名称到文件路径的映射
+                        font_name_to_path = {
+                            'SimHei': 'C:/Windows/Fonts/simhei.ttf',
+                            'SimSun': 'C:/Windows/Fonts/simsun.ttc',
+                            'Microsoft YaHei': 'C:/Windows/Fonts/msyh.ttf',
+                            'KaiTi': 'C:/Windows/Fonts/simkai.ttf',
+                            'Arial': 'C:/Windows/Fonts/arial.ttf',
+                            'Times New Roman': 'C:/Windows/Fonts/times.ttf',
+                            'Courier New': 'C:/Windows/Fonts/cour.ttf',
+                            'Comic Sans MS': 'C:/Windows/Fonts/comic.ttf',
+                            'Impact': 'C:/Windows/Fonts/impact.ttf',
+                            'Verdana': 'C:/Windows/Fonts/verdana.ttf',
+                            'Georgia': 'C:/Windows/Fonts/georgia.ttf',
+                            'Tahoma': 'C:/Windows/Fonts/tahoma.ttf',
+                            'Bradley Hand ITC': 'C:/Windows/Fonts/bradhitc.ttf',
+                        }
+                        
+                        # 尝试直接匹配字体名称
+                        if user_font_family in font_name_to_path:
+                            user_font_path = font_name_to_path[user_font_family]
+                            if os.path.exists(user_font_path):
+                                try:
+                                    font = ImageFont.truetype(user_font_path, font_size)
+                                    print(f"成功加载用户选择的字体: {user_font_path}")
+                                except Exception as e:
+                                    print(f"加载用户选择的字体出错: {e}")
+                    
+                    # 如果用户字体加载失败，尝试加载默认的中文字体
+                    if font is None:
+                        print("尝试加载默认中文字体")
+                        possible_fonts = [
+                            'C:/Windows/Fonts/simhei.ttf',  # 黑体
+                            'C:/Windows/Fonts/simsun.ttc',  # 宋体
+                            'C:/Windows/Fonts/msyh.ttf',    # 微软雅黑
+                            'C:/Windows/Fonts/simkai.ttf',  # 楷体
+                        ]
+                        
+                        for fp in possible_fonts:
+                            if os.path.exists(fp):
+                                font_path = fp
+                                try:
+                                    font = ImageFont.truetype(fp, font_size)
+                                    print(f"成功加载默认字体: {fp}")
+                                    break
+                                except Exception as e:
+                                    print(f"加载字体 {fp} 时出错: {e}")
+                                    continue
                     
                     # 如果无法加载字体，使用默认字体但调整大小
                     if font is None:
