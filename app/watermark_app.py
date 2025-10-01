@@ -629,8 +629,8 @@ class WatermarkApp(QMainWindow):
                 # 全新的文本渲染方法
                 print("绘制文本水印...")
                 
-                # 使用深蓝色作为文本颜色
-                text_color = (50, 50, 200)  # 深蓝色
+                # 使用用户选择的颜色
+                text_color = (self.color.red(), self.color.green(), self.color.blue())
                 text_opacity = int(self.text_opacity * 2.55)  # 根据用户设置的文字透明度
                 print(f"文本颜色: {text_color}, 透明度: {text_opacity}")
                 
